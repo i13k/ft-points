@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pl" data-bs-theme="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="bootstrap.min.css" type="text/css" />
+        <script type="text/javascript" src="bootstrap.bundle.min.js"></script>
+        <style type="text/css">
+            td {
+                padding: 10px 10px 10px 10px;
+                width: 100px;
+                text-align: center;
+            }
+        </style>
+        <title>Tarot - wyniki</title>
+    </head>
+    <body>
+        <div class="position-absolute top-50 start-50 translate-middle">
+            <table class="table table-dark table-striped table-bordered" id="table">
+                <tr id="tableHead">
+                    <th>Kontrakt</th>
+                    <th>Rozg.</th>
+                </tr>
+            </table>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDeal">
+                Nowe rozdanie
+            </button>
+        </div>
+        <div class="modal" id="newDeal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Rozdanie</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-floating">
+                            <select class="form-select" id="declarerSelect"></select>
+                            <label for="declarerSelect">Rozgrywający</label>
+                        </div><br />
+                        <div class="form-floating">
+                            <select class="form-select" id="contractSelect">
+                                <option value="1">mały</option>
+                                <option value="2">duży</option>
+                                <option value="4">bez</option>
+                                <option value="6">przeciwko</option>
+                            </select>
+                            <label for="contractSelect">Kontrakt</label>
+                        </div><br />
+                        <div class="form-floating">
+                            <select class="form-select" id="poigneeSelect">
+                                <option value="0">brak</option>
+                                <option value="20">10 atutów</option>
+                                <option value="30">13 atutów</option>
+                                <option value="40">15 atutów</option>
+                                <option value="20">13 atutów (3 os.)</option>
+                                <option value="30">15 atutów (3 os.)</option>
+                                <option value="40">18 atutów (3 os.)</option>
+                            </select>
+                            <label for="poigneeSelect">Poignée</label>
+                        </div><br />
+                        <div class="form-floating">
+                            <select class="form-select" id="pabSelect">
+                                <option value="none">nikt</option>
+                                <option value="taker">rozgrywający</option>
+                                <option value="opponenes">przeciwnicy</option>
+                            </select>
+                            <label for="pabSelect">Petit au bout</label>
+                        </div><br />
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1">Honory</span>
+                            <input type="number" class="form-control" min="0" max="3" id="honorsText" aria-describedby="basic-addon1" />
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1">Punkty z kart</span>
+                            <input type="number" class="form-control" min="0" max="4" id="cardpointsText" aria-describedby="basic-addon1">
+                        </div>
+                        <input type="checkbox" class="form-check-input" id="slamDeclared" />
+                        <label class="form-check-label" for="slamDeclared">Szlem deklarowany</label><br />
+                        <input type="checkbox" class="form-check-input" id="slamDone" />
+                        <label class="form-check-label" for="slamDone">Szlem zrealizowany</label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+                        <button type="button" class="btn btn-secondary" onclick="dealPassed();" data-bs-dismiss="modal">Spasuj</button>
+                        <button type="button" class="btn btn-primary" onclick="addDeal();" data-bs-dismiss="modal">Zapisz</button>
+                    </div>                
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            function g(x) { return document.getElementById(x); }
+            var players = new Map();
+            var currentName = prompt("Podaj imię gracza. Podaj puste imię, aby zakończyć.");
+            while (currentName !== "") {
+                var currentScore = parseInt(prompt("Podaj wynik gracza (z zapisanej gry) lub 0."));
+                players.set(currentName, { score: currentScore });
+                var el = document.createElement("option");
+                el.innerText = currentName;
+                g("declarerSelect").appendChild(el);
+                el = document.createElement("th");
+                el.innerText = currentName;
+                g("tableHead").appendChild(el);
+                currentName = prompt("Podaj imię gracza. Podaj puste imię, aby zakończyć.");
+            }
+            function addDeal() {
+                var el = g("declarerSelect"),
+                    declarerName = el.options[el.selectedIndex].text,
+                    contract = parseInt(g("contractSelect").value),
+                    contractName = g("contractSelect").options[g("contractSelect").selectedIndex].text,
+                    poignee = parseInt(g("poigneeSelect").value),
+                    honors = parseInt(g("honorsText").value),
+                    cardPoints = parseInt(g("cardpointsText").value),
+                    targets = [56, 51, 41, 36],
+                    target = targets[honors],
+                    decl = g("slamDeclared").checked,
+                    done = g("slamDone").checked,
+                    slam = (decl && done) ? 400 : ((decl && !done) ? -200 : ((!decl && done) ? 200 : 0)),
+                    won = cardPoints >= target,
+                    pb = g("pabSelect").value,
+                    pbValue = 0;
+                    if (won) {
+                        if (pb == "taker")
+                            pbValue = 10;
+                        else if (pb == "opponents")
+                            pbValue = -10;
+                    } else {
+                        if (pb == "taker")
+                            pbValue = -10;
+                        else if (pb == "opponents")
+                            pbValue = 10;
+                    }
+                    var score = (25 + Math.abs(cardPoints - target) + pbValue) * contract + poignee + slam,
+                    playerCount = players.size - 1,
+                    el1 = document.createElement("tr"),
+                    el3 = document.createElement("td"),
+                    el4 = document.createElement("td");
+                    el3.innerText = contractName;
+                    el1.appendChild(el3);
+                    el4.innerText = declarerName;
+                    el1.appendChild(el4);
+                    var i = 0;
+                    players.forEach(function(player, name) {
+                        if (won) {
+                            if (name == declarerName) {
+                                var score1 = score * playerCount,
+                                el2 = document.createElement("td");
+                                el2.style = "background-color: #48a04e; font-size: 20px; font-weight: bold;";
+                                var player = players.get(name);
+                                player.score += score1;
+                                el2.innerHTML = player.score.toString();
+                                el1.appendChild(el2);
+                            } else {
+                                var score1 = -score,
+                                el2 = document.createElement("td");
+                                el2.style = "background-color: #a04848; font-size: 20px; font-weight: bold;";
+                                var player = players.get(name);
+                                player.score += score1;
+                                el2.innerHTML = player.score.toString();
+                                el1.appendChild(el2);
+                            }
+                        } else {
+                            if (name == declarerName) {
+                                var score1 = -(score * playerCount),
+                                el2 = document.createElement("td");
+                                el2.style = "background-color: #a04848; font-size: 20px; font-weight: bold;";
+                                var player = players.get(name);
+                                player.score += score1;
+                                el2.innerHTML = player.score.toString();
+                                el1.appendChild(el2);
+                            } else {
+                                var score1 = score,
+                                el2 = document.createElement("td");
+                                el2.style = "background-color: #48a04e; font-size: 20px; font-weight: bold;";
+                                var player = players.get(name);
+                                player.score += score1;
+                                el2.innerHTML = player.score.toString();
+                                el1.appendChild(el2);
+                            }
+                        }
+                    });
+                    g("table").appendChild(el1);
+            }
+            function dealPassed() {
+                var el1 = document.createElement("tr"),
+                    el3 = document.createElement("td"),
+                    el4 = document.createElement("td");
+                    el3.innerText = "[pas]";
+                    el1.appendChild(el3);
+                    el4.innerText = "[pas]";
+                    el1.appendChild(el4);
+                players.forEach(function(player, name) {
+                    var el2 = document.createElement("td");
+                    el2.style = "background-color: #6a6a6a; font-size: 20px; font-weight: bold;";
+                    el2.innerHTML = players.get(name).score.toString();
+                    el1.appendChild(el2);
+                });
+                g("table").appendChild(el1);
+            }
+        </script>
+    </body>
+</html>
